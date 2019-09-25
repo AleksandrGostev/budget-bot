@@ -8,7 +8,7 @@ class PaymentType:
     INCOME = 'income'
 
 
-def insert_payment(chat_id, username, payment_type, title, price, date, category_id):
+def insert_payment(chat_id, username, title, price, date, category_id):
     conn = sqlite3.connect('db_budget.db')
     cursor = conn.cursor()
     cursor.execute(

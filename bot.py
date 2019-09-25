@@ -195,7 +195,6 @@ def add_payment(callback):
     category_row = db_service.get_category(callback.message.chat.id, category_id)
     category = dict(category_row)
     payment_id = db_service.insert_payment(callback.message.chat.id, callback.message.from_user.first_name,
-                                           payment_type,
                                            MessageHandler.title, MessageHandler.price, datetime.datetime.today(),
                                            category_id)
     markup = types.InlineKeyboardMarkup(row_width=2)

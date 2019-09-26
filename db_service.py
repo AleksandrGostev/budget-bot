@@ -72,7 +72,8 @@ class BotDB:
                             FROM categories as c
                             LEFT JOIN payments as p on p.category_id = c.category_id
                             WHERE c.chat_id = %s and date >= %s and c.date <= %s
-                            group by c.category_id""",
+                            group by c.category_id
+                            ORDER BY c.position""",
                             (chat_id, first_day_of_month, last_day_of_month))
         self.connection.commit()
         return self.cursor.fetchall()

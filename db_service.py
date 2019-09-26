@@ -83,6 +83,7 @@ class BotDB:
                                 FROM categories as c
                                 LEFT JOIN payments as p on p.category_id = c.category_id 
                                     AND c.chat_id = %s and p.date >= %s and p.date <= %s
-                                group by c.category_id""",
+                                group by c.category_id
+                                ORDER BY c.position""",
                             (chat_id, str(first_day_of_month), str(last_day_of_month)))
         return self.cursor.fetchall()

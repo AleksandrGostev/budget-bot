@@ -239,7 +239,7 @@ def all_messages_handler(message):
     markup.add(types.InlineKeyboardButton("Back", callback_data="payment_categories_main_menu"))
     if "-" in message.text:
         data_arr = message.text.split('-')
-        MessageHandler.price = data_arr[0]
+        MessageHandler.price = data_arr[0].replace(',', '.')
         MessageHandler.title = data_arr[1]
         if message.from_user.id == 499892188:
             bot.send_message(message.chat.id, "Я всё мужу расскажу!!")
@@ -248,7 +248,7 @@ def all_messages_handler(message):
         bot.send_message(message.chat.id, "Куда желаете добавить?", reply_markup=markup)
     if "-" not in message.text:
         try:
-            price = float(message.text)
+            price = float(message.text.replace(',', '.'))
             MessageHandler.price = price
             MessageHandler.title = ""
             if message.from_user.id == 499892188:

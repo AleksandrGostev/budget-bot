@@ -40,7 +40,7 @@ class BotDB:
         self.connection.commit()
 
     def get_categories(self, chat_id, payment_type):
-        self.cursor.execute("SELECT * FROM categories WHERE chat_id = %s and payment_type = %s",
+        self.cursor.execute("SELECT * FROM categories WHERE chat_id = %s and payment_type = %s ORDER BY position",
                             (chat_id, payment_type))
         self.connection.commit()
         return self.cursor.fetchall()

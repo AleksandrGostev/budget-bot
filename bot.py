@@ -58,18 +58,23 @@ def show_report(message):
     category_rows = db_service.get_chat_payments_current_month(message.chat.id, first_day_of_month, last_day_of_month)
     incomes_str = ""
     expense_str = ""
+    total_expense = 0
+    total_income = 0
 
     for cat in category_rows:
         title = cat[3]
         amount = cat[6]
         payment_type = cat[2]
         if payment_type == 'expense':
+            total_expense += amount
             expense_str += "{}: {} €\n".format(title, amount)
         else:
+            total_income += amount
             incomes_str += "{}: {} €\n".format(title, amount)
-
-    full_msg = "Отчёт по дате {} - {}:\n\nДоходы:\n{}\nРасходы:\n{}".format(first_day_of_month, last_day_of_month,
-                                                                            incomes_str, expense_str)
+    expense_str += "-------------------\nИтого: {} €".format(total_expense)
+    incomes_str += "-------------------\nИтого: {} €".format(total_income)
+    full_msg = "Отчёт по дате {} - {}:\n\nДоходы:\n{}\n\nРасходы:\n{}".format(first_day_of_month, last_day_of_month,
+                                                                              incomes_str, expense_str)
 
     bot.send_message(message.chat.id, full_msg)
 

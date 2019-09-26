@@ -71,8 +71,8 @@ def show_report(message):
         else:
             total_income += amount
             incomes_str += "{}: {} €\n".format(title, amount)
-    expense_str += "-------------------\nИтого: {} €".format(total_expense)
-    incomes_str += "-------------------\nИтого: {} €".format(total_income)
+    expense_str += "-------------------\nИтого: {} €".format(round(total_expense, 2))
+    incomes_str += "-------------------\nИтого: {} €".format(round(total_income, 2))
     full_msg = "Отчёт по дате {} - {}:\n\nДоходы:\n{}\n\nРасходы:\n{}".format(first_day_of_month, last_day_of_month,
                                                                               incomes_str, expense_str)
 

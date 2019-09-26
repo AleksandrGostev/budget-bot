@@ -248,7 +248,7 @@ def all_messages_handler(message):
         bot.send_message(message.chat.id, "Куда желаете добавить?", reply_markup=markup)
     if "-" not in message.text:
         try:
-            price = int(message.text)
+            price = float(message.text)
             MessageHandler.price = price
             MessageHandler.title = ""
             if message.from_user.id == 499892188:

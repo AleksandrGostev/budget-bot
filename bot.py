@@ -242,27 +242,18 @@ def all_messages_handler(message):
     markup = types.InlineKeyboardMarkup(row_width=2)
     generate_add_menu(markup, PaymentType.EXPENSE, message.chat.id)
     markup.add(types.InlineKeyboardButton("Back", callback_data="payment_categories_main_menu"))
-    if "-" in message.text:
-        data_arr = message.text.split('-')
-        MessageHandler.price = data_arr[0].replace(',', '.')
-        MessageHandler.title = data_arr[1]
-        if message.from_user.id == 499892188:
-            bot.send_message(message.chat.id, "Я всё мужу расскажу!!")
-        else:
-            bot.send_message(message.chat.id, "Красава Санёк!!")
-        bot.send_message(message.chat.id, "Куда желаете добавить?", reply_markup=markup)
-    if "-" not in message.text:
-        try:
-            price = float(message.text.replace(',', '.'))
-            MessageHandler.price = price
-            MessageHandler.title = ""
-            if message.from_user.id == 499892188:
-                bot.send_message(message.chat.id, "Я всё мужу расскажу!!")
-            else:
-                bot.send_message(message.chat.id, "Красава Санёк!!")
-            bot.send_message(message.chat.id, "Извольте выбрать категорию?", reply_markup=markup)
-        except ValueError:
-            bot.send_sticker(message.chat.id, "CAADAgADogADNmLjBTODpXLHHo4DFgQ")
+    data_arr = data_arr = message.text.split(' ')
+    try:
+        MessageHandler.price = float(data_arr[0].replace(',', '.'))
+        title_arr = []
+        i = 1
+        while i < len(data_arr):
+            title_arr.append(data_arr[i])
+            i += 1
+        MessageHandler.title = " ".join(title_arr)
+        bot.send_message(message.chat.id, "Извольте выбрать категорию", reply_markup=markup)
+    except ValueError:
+        bot.send_sticker(message.chat.id, "CAADAgADogADNmLjBTODpXLHHo4DFgQ")
 
 
 @server.route('/' + TOKEN, methods=['POST'])

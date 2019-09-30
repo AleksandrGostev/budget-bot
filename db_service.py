@@ -87,3 +87,23 @@ class BotDB:
                                 ORDER BY c.position""",
                             (chat_id, str(first_day_of_month), str(last_day_of_month)))
         return self.cursor.fetchall()
+
+    def change_position(self, chat_id, old_position, new_position):
+        self.cursor.execute("""
+            UPDATE
+                categories
+            SET
+                position = p.position
+            FROM
+                categories AS p
+            WHERE
+                    ( categories.position = {1} OR categories.position = {2} )
+                AND ( p.position = {1} OR p.position = {2} )
+                AND categories.chat_id = {0}
+                AND categories.position <> p.position        
+        """.format(chat_id, old_position, new_position))
+        self.connection.commit()
+
+    def get_last_position(self, chat_id):
+        self.cursor.execute("""SELECT COUNT(*) FROM categories WHERE chat_id = %s""", [chat_id])
+        return self.cursor.fetchone()

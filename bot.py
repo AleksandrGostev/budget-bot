@@ -133,11 +133,34 @@ def category_edit_menu(callback):
 
     markup.add(types.InlineKeyboardButton("Переименовать", callback_data='rename_category_{}'.format(category_id)),
                types.InlineKeyboardButton("Удалить", callback_data='delete_category_{}'.format(category_id)))
+    markup.add(
+        types.InlineKeyboardButton("Поднять в списке",
+                                   callback_data='change_position_{}_up'.format(category_id)),
+        types.InlineKeyboardButton("Опустить в списке",
+                                   callback_data='change_position_{}_down'.format(category_id)))
     markup.add(types.InlineKeyboardButton("Назад", callback_data=payment_type))
 
     bot.edit_message_text("За текущий месяц:\n {} - 0 €".format(title),
                           callback.message.chat.id, callback.message.message_id)
     bot.edit_message_reply_markup(callback.message.chat.id, callback.message.message_id, reply_markup=markup)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('change_position'))
+def change_position(callback):
+    data_arr = callback.data.split('_')
+    category_id = data_arr[-2]
+    cat = db_service.get_category(callback.message.chat.id, category_id)
+    max_position = db_service.get_last_position(callback.message.chat.id)[0]
+    position = cat[5]
+    direction = -1 if data_arr[-1] == "up" else 1
+    new_position = int(position) + int(direction)
+    if new_position == 0:
+        bot.answer_callback_query(callback.id, "Выше уже некуда!")
+    elif new_position > max_position:
+        bot.answer_callback_query(callback.id, "Ниже низзззя!")
+    else:
+        db_service.change_position(callback.message.chat.id, position, new_position)
+        bot.answer_callback_query(callback.id, "Новая позиция {}".format(new_position))
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('rename_category'))

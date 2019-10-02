@@ -64,17 +64,11 @@ class BotDB:
         self.cursor.execute("DELETE FROM payments WHERE chat_id = %s and payment_id = %s ", (chat_id, payment_id))
         self.connection.commit()
 
-    def get_category_payments_current_month(self, chat_id, category_id):
-        month_range = calendar.monthrange(datetime.date.year, datetime.date.month)
-        first_day_of_month = month_range[0]
-        last_day_of_month = month_range[1]
-        self.cursor.execute("""SELECT c.*, sum(p.price) as amount
-                            FROM categories as c
-                            LEFT JOIN payments as p on p.category_id = c.category_id
-                            WHERE c.chat_id = %s and date >= %s and c.date <= %s
-                            group by c.category_id
-                            ORDER BY c.position""",
-                            (chat_id, first_day_of_month, last_day_of_month))
+    def get_category_payments(self, chat_id, category_id, first_day, last_day):
+        self.cursor.execute("""SELECT * 
+                            FROM payments
+                            WHERE chat_id = %s and category_id = %s and date >= %s and date <= %s""",
+                            (chat_id, category_id, str(first_day), str(last_day)))
         self.connection.commit()
         return self.cursor.fetchall()
 

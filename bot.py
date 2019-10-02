@@ -49,13 +49,25 @@ def main_menu():
     return markup
 
 
+def get_message_dates(message):
+    args = message.text.split(' ')
+    first_day = ''
+    last_day = ''
+    if len(args) > 1:
+        first_day = args[1].split('_')[0]
+        last_day = args[1].split('_')[1]
+    else:
+        today = datetime.datetime.today()
+        month_range = calendar.monthrange(today.year, today.month)
+        first_day = today.replace(day=1).date()
+        last_day = today.replace(day=month_range[1]).date()
+    return {'first_day': first_day, 'last_day': last_day}
+
+
 @bot.message_handler(commands=['report'])
 def show_report(message):
-    today = datetime.datetime.today()
-    month_range = calendar.monthrange(today.year, today.month)
-    first_day_of_month = today.replace(day=1).date()
-    last_day_of_month = today.replace(day=month_range[1]).date()
-    category_rows = db_service.get_chat_payments_current_month(message.chat.id, first_day_of_month, last_day_of_month)
+    dates = get_message_dates(message)
+    category_rows = db_service.get_chat_payments_current_month(message.chat.id, dates['first_day'], dates['last_day'])
     incomes_str = ""
     expense_str = ""
     total_expense = 0
@@ -73,7 +85,49 @@ def show_report(message):
             incomes_str += "{}: {} €\n".format(title, amount)
     expense_str += "-------------------\nИтого: {} €".format(round(total_expense, 2))
     incomes_str += "-------------------\nИтого: {} €".format(round(total_income, 2))
-    full_msg = "Отчёт по дате {} - {}:\n\nДоходы:\n{}\n\nРасходы:\n{}".format(first_day_of_month, last_day_of_month,
+    full_msg = "Отчёт по дате {} - {}:\n\nДоходы:\n{}\n\nРасходы:\n{}".format(ates['first_day'], dates['last_day'],
+                                                                              incomes_str, expense_str)
+
+    bot.send_message(message.chat.id, full_msg)
+
+
+def compound_category_total(category_rows, chat_id, dates):
+    type_total = 0
+    type_str = ''
+    for cat in category_rows:
+        category_id = cat[0]
+        title = cat[3]
+        total = 0
+        payments = db_service.get_category_payments(chat_id, category_id, dates['first_day'],
+                                                    dates['last_day'])
+        payments_str = ""
+        for payment in payments:
+            p_title = payment[3] if payment[3] != '' else '-\t'
+            p_price = payment[4]
+            p_date = datetime.datetime.strptime(payment[5], '%Y-%m-%d %H:%M:%S.%f').date()
+            total += p_price
+            payments_str += "\t\t{}({}): {}€\n".format(p_title, p_date, p_price)
+        type_str += "{}: {} €\n".format(title, total)
+        type_str += payments_str
+        type_total += total
+
+    return {'type_total': type_total, 'type_str': type_str}
+
+
+@bot.message_handler(commands=['detailed_report'])
+def show_report_detailed(message):
+    dates = get_message_dates(message)
+
+    expense_category_rows = db_service.get_categories(message.chat.id, PaymentType.EXPENSE)
+    income_category_rows = db_service.get_categories(message.chat.id, PaymentType.INCOME)
+
+    expenses_total = compound_category_total(expense_category_rows, message.chat.id, dates)
+    incomes_total = compound_category_total(income_category_rows, message.chat.id, dates)
+    expense_str = expenses_total['type_str']
+    incomes_str = incomes_total['type_str']
+    expense_str += "-------------------\nИтого: {} €".format(expenses_total['type_total'])
+    incomes_str += "-------------------\nИтого: {} €".format(incomes_total['type_total'])
+    full_msg = "Отчёт по дате {} - {}:\n\nДоходы:\n{}\n\nРасходы:\n{}".format(dates['first_day'], dates['last_day'],
                                                                               incomes_str, expense_str)
 
     bot.send_message(message.chat.id, full_msg)

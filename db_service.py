@@ -72,14 +72,12 @@ class BotDB:
         self.connection.commit()
         return self.cursor.fetchall()
 
-    def get_chat_payments_current_month(self, chat_id, first_day_of_month, last_day_of_month):
-        self.cursor.execute("""SELECT c.*, COALESCE (SUM(p.price), 0) amount
-                                FROM categories as c
-                                LEFT JOIN payments as p on p.category_id = c.category_id 
-                                    AND c.chat_id = %s and p.date >= %s and p.date <= %s
-                                group by c.category_id
-                                ORDER BY c.position""",
-                            (chat_id, str(first_day_of_month), str(last_day_of_month)))
+    def get_payments(self, chat_id, first_day_of_month, last_day_of_month):
+        self.cursor.execute("""select cat.*, coalesce(sum(pmt.price), 0) from categories as cat
+                                left join payments as pmt on pmt.category_id = cat.category_id and pmt.date between '{1}' and '{2}'
+                                where cat.chat_id = {0} 
+                                group by cat.category_id""".format(chat_id, str(first_day_of_month),
+                                                                   str(last_day_of_month)), )
         return self.cursor.fetchall()
 
     def change_position(self, chat_id, old_position, new_position):

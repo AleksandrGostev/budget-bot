@@ -67,7 +67,7 @@ def get_message_dates(message):
 @bot.message_handler(commands=['report'])
 def show_report(message):
     dates = get_message_dates(message)
-    category_rows = db_service.get_chat_payments_current_month(message.chat.id, dates['first_day'], dates['last_day'])
+    category_rows = db_service.get_payments(message.chat.id, dates['first_day'], dates['last_day'])
     incomes_str = ""
     expense_str = ""
     total_expense = 0

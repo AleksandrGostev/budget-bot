@@ -85,7 +85,7 @@ def show_report(message):
             incomes_str += "{}: {} €\n".format(title, amount)
     expense_str += "-------------------\nИтого: {} €".format(round(total_expense, 2))
     incomes_str += "-------------------\nИтого: {} €".format(round(total_income, 2))
-    full_msg = "Отчёт по дате {} - {}:\n\nДоходы:\n{}\n\nРасходы:\n{}".format(ates['first_day'], dates['last_day'],
+    full_msg = "Отчёт по дате {} - {}:\n\nДоходы:\n{}\n\nРасходы:\n{}".format(dates['first_day'], dates['last_day'],
                                                                               incomes_str, expense_str)
 
     bot.send_message(message.chat.id, full_msg)

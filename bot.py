@@ -115,7 +115,7 @@ def compound_category_total(category_rows, chat_id, dates):
         for payment in payments:
             p_title = payment[3] if payment[3] != '' else '-\t'
             p_price = payment[4]
-            p_date = datetime.datetime.strptime(payment[5], '%Y-%m-%d %H:%M:%S.%f').date()
+            p_date = datetime.datetime.strptime(payment[5], '%Y-%m-%d %H:%M:%S').date()
             if p_price:
                 total += p_price
                 payments_str += "\t\t{}({}): {}€\n".format(p_title, p_date, p_price)

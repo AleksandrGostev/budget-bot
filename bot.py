@@ -126,7 +126,7 @@ def compound_category_total(category_rows, chat_id, dates):
     return {'type_total': type_total, 'type_str': type_str}
 
 
-@bot.message_handler(commands=['detailed_report'])
+@bot.message_handler(commands=['report_detailed'])
 def show_report_detailed(message):
     dates = get_message_dates(message)
 

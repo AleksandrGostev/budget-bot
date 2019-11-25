@@ -3,10 +3,12 @@ from telebot import types
 import datetime
 import db_service
 from db_service import PaymentType
-import calendar
 import os
+import calendar
 from flask import Flask, request
+import tgcalendar
 
+ENV = os.environ.get('ENV')
 TOKEN = os.environ.get('TOKEN')
 server = Flask(__name__)
 
@@ -49,13 +51,20 @@ def main_menu():
     return markup
 
 
-def get_message_dates(message):
+def get_message_dates(message, is_from_salary_to_salary=False):
     args = message.text.split(' ')
-    first_day = ''
-    last_day = ''
     if len(args) > 1:
         first_day = args[1].split('_')[0]
         last_day = args[1].split('_')[1]
+    elif is_from_salary_to_salary:
+        end_date = datetime.datetime.today()
+        if end_date.day >= 20:
+            end_date = end_date.replace(day=20, month=end_date.month+1)
+        else:
+            end_date = end_date.replace(day=20)
+        start_date = datetime.datetime.today().replace(day=20, month=end_date.month - 1)
+        first_day = start_date.date()
+        last_day = end_date.date()
     else:
         today = datetime.datetime.today()
         month_range = calendar.monthrange(today.year, today.month)
@@ -64,9 +73,11 @@ def get_message_dates(message):
     return {'first_day': first_day, 'last_day': last_day}
 
 
-@bot.message_handler(commands=['report'])
+@bot.message_handler(commands=['report', 'report_from_20_to_20'])
 def show_report(message):
     dates = get_message_dates(message)
+    if 'from_20_to_20' in message.text:
+        dates = get_message_dates(message, True)
     category_rows = db_service.get_chat_payments_current_month(message.chat.id, dates['first_day'], dates['last_day'])
     incomes_str = ""
     expense_str = ""
@@ -85,7 +96,7 @@ def show_report(message):
             incomes_str += "{}: {} €\n".format(title, amount)
     expense_str += "-------------------\nИтого: {} €".format(round(total_expense, 2))
     incomes_str += "-------------------\nИтого: {} €".format(round(total_income, 2))
-    full_msg = "Отчёт по дате {} - {}:\n\nДоходы:\n{}\n\nРасходы:\n{}".format(ates['first_day'], dates['last_day'],
+    full_msg = "Отчёт по дате {} - {}:\n\nДоходы:\n{}\n\nРасходы:\n{}".format(dates['first_day'], dates['last_day'],
                                                                               incomes_str, expense_str)
 
     bot.send_message(message.chat.id, full_msg)
@@ -105,8 +116,9 @@ def compound_category_total(category_rows, chat_id, dates):
             p_title = payment[3] if payment[3] != '' else '-\t'
             p_price = payment[4]
             p_date = datetime.datetime.strptime(payment[5], '%Y-%m-%d %H:%M:%S.%f').date()
-            total += p_price
-            payments_str += "\t\t{}({}): {}€\n".format(p_title, p_date, p_price)
+            if p_price:
+                total += p_price
+                payments_str += "\t\t{}({}): {}€\n".format(p_title, p_date, p_price)
         type_str += "{}: {} €\n".format(title, total)
         type_str += payments_str
         type_total += total
@@ -281,7 +293,10 @@ def add_payment(callback):
                                            MessageHandler.title, MessageHandler.price, datetime.datetime.today(),
                                            category_id)
     markup = types.InlineKeyboardMarkup(row_width=2)
-    markup.add(types.InlineKeyboardButton("Отменить", callback_data="cancel_payment_{}".format(payment_id)))
+    markup.add(
+        types.InlineKeyboardButton("Отменить", callback_data="cancel_payment_{}".format(payment_id)),
+        types.InlineKeyboardButton("Изменить дату", callback_data="change_payment_date_{}".format(payment_id))
+    )
     bot.edit_message_text("{} добавлено в {}".format(MessageHandler.price, title),
                           callback.message.chat.id, callback.message.message_id, reply_markup=markup)
 
@@ -296,6 +311,65 @@ def generate_add_menu(markup, payment_type, chat_id):
                 title,
                 callback_data="add_payment_{}_{}".format(payment_type, category_id)
             )
+        )
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("change_payment_date_"))
+def change_payment_date(callback):
+    payment_id = callback.data.split('_')[-1]
+    cal = tgcalendar.create_calendar(payment_id=payment_id)
+    bot.edit_message_text(callback.message.text, callback.message.chat.id, callback.message.message_id,
+                          reply_markup=cal)
+
+
+@bot.callback_query_handler(lambda query: query.data.startswith(("IGNORE", "DAY", "PREV-MONTH", "NEXT-MONTH")))
+def process_payment_date(callback):
+    result = (False, None)
+    (action, year, month, day, payment_id) = tgcalendar.separate_callback_data(callback.data)
+    curr = datetime.datetime(int(year), int(month), 1)
+    if action == "IGNORE":
+        bot.answer_callback_query(callback_query_id=callback.id)
+    elif action == "DAY":
+        bot.edit_message_text(text=callback.message.text,
+                              chat_id=callback.message.chat.id,
+                              message_id=callback.message.message_id
+                              )
+        result = True, datetime.datetime(int(year), int(month), int(day))
+    elif action == "PREV-MONTH":
+        pre = curr - datetime.timedelta(days=1)
+        bot.edit_message_text(text=callback.message.text,
+                              chat_id=callback.message.chat.id,
+                              message_id=callback.message.message_id,
+                              reply_markup=tgcalendar.create_calendar(int(pre.year), int(pre.month), payment_id))
+    elif action == "NEXT-MONTH":
+        ne = curr + datetime.timedelta(days=31)
+        cal = tgcalendar.create_calendar(int(ne.year), int(ne.month), payment_id)
+        bot.edit_message_text(
+            text=callback.message.text,
+            chat_id=callback.message.chat.id,
+            message_id=callback.message.message_id,
+            reply_markup=cal
+        )
+    else:
+        bot.answer_callback_query(callback_query_id=callback.id, text="Something went wrong!")
+
+    # if day was selected
+    if result[0]:
+        new_date = result[1]
+        db_service.update_payment_date(callback.message.chat.id, payment_id, new_date)
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        markup.add(
+            types.InlineKeyboardButton("Отменить", callback_data="cancel_payment_{}".format(payment_id)),
+            types.InlineKeyboardButton("Изменить дату", callback_data="change_payment_date_{}".format(payment_id))
+        )
+        text = callback.message.text.split('\n')[-1]
+        if 'Новая дата' in text:
+            callback.message.text = callback.message.text.replace('\n'+text, '')
+        bot.edit_message_text(
+            callback.message.text + '\nНовая дата: {}'.format(new_date),
+            callback.message.chat.id,
+            callback.message.message_id,
+            reply_markup=markup
         )
 
 
@@ -346,5 +420,12 @@ def webhook():
     return "!", 200
 
 
-if __name__ == "__main__":
-    server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
+def start():
+    if ENV == "dev":
+        bot.polling()
+    else:
+        if __name__ == "__main__":
+            server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
+
+
+start()

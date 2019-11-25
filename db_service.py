@@ -1,5 +1,3 @@
-import datetime
-import calendar
 import psycopg2
 import os
 
@@ -29,8 +27,19 @@ class BotDB:
             """INSERT INTO payments(chat_id, username, title, price, date, category_id) 
                 VALUES ( %s, %s, %s, %s, %s, %s )""",
             (chat_id, username, title, price, date, category_id))
+        self.cursor.execute('SELECT LASTVAL()')
+        last_inserted_id = self.cursor.fetchone()[0]
         self.connection.commit()
-        return self.cursor.lastrowid
+        return last_inserted_id
+
+    def update_payment_date(self, chat_id, payment_id, new_date):
+        self.cursor.execute(
+            """UPDATE payments
+                SET date = %s
+                WHERE chat_id = %s and payment_id = %s""",
+            (str(new_date), chat_id, payment_id)
+        )
+        self.connection.commit()
 
     def insert_category(self, chat_id, payment_type, title, date):
         self.cursor.execute(

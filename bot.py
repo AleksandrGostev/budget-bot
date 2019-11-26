@@ -130,7 +130,7 @@ def compound_category_total(category_rows, chat_id, dates):
 def parse_datetime(str_date):
     for fmt in ('%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S'):
         try:
-            return datetime.strptime(str_date, fmt)
+            return datetime.datetime.strptime(str_date, fmt)
         except ValueError:
             pass
 

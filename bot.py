@@ -115,7 +115,8 @@ def compound_category_total(category_rows, chat_id, dates):
         for payment in payments:
             p_title = payment[3] if payment[3] != '' else '-\t'
             p_price = payment[4]
-            p_date = datetime.datetime.strptime(payment[5], '%Y-%m-%d %H:%M:%S').date()
+            p_date = parse_datetime(payment[5]).date()
+            # p_date = datetime.datetime.strptime(payment[5], '%Y-%m-%d %H:%M:%S.%f').date()
             if p_price:
                 total += p_price
                 payments_str += "\t\t{}({}): {}€\n".format(p_title, p_date, p_price)
@@ -124,6 +125,14 @@ def compound_category_total(category_rows, chat_id, dates):
         type_total += total
 
     return {'type_total': type_total, 'type_str': type_str}
+
+
+def parse_datetime(str_date):
+    for fmt in ('%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S'):
+        try:
+            return datetime.strptime(str_date, fmt)
+        except ValueError:
+            pass
 
 
 @bot.message_handler(commands=['report_detailed'])
